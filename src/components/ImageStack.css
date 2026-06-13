@@ -1,0 +1,168 @@
+.image-stack {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  min-height: 380px;
+}
+
+.image-stack__main {
+  position: relative;
+  z-index: 2;
+  width: 88%;
+  margin-left: auto;
+}
+
+.image-stack__main .anim-img__frame {
+  aspect-ratio: 4 / 5;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  background: var(--bg-deep);
+}
+
+.image-stack__main .anim-img__frame img {
+  object-fit: contain;
+  padding: 1.5rem;
+}
+
+.image-stack__accent {
+  position: absolute;
+  left: 0;
+  bottom: 12%;
+  width: 52%;
+  z-index: 3;
+}
+
+.image-stack__accent .anim-img__frame {
+  aspect-ratio: 1;
+  border: 3px solid var(--bg-deep);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+}
+
+.image-stack__accent.anim-img--float.anim-img--in .anim-img__frame {
+  animation-name: float-y-alt;
+}
+
+.image-stack__badge {
+  position: absolute;
+  top: 8%;
+  left: 0;
+  z-index: 4;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bg-deep);
+  background: var(--accent);
+  border-radius: 999px;
+  animation: float-y 4s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+@media (min-width: 900px) {
+  .image-stack {
+    max-width: 460px;
+    margin: 0;
+  }
+}
+
+/* Homepage hero — fill the full right column */
+.image-stack--hero {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-height: 0;
+}
+
+.image-stack--hero .image-stack__main {
+  width: 100%;
+  margin-left: 0;
+}
+
+.image-stack--hero .image-stack__main .anim-img {
+  width: 100%;
+}
+
+.image-stack--hero .image-stack__main .anim-img__frame {
+  width: 100%;
+  aspect-ratio: 5 / 4;
+  height: auto;
+  min-height: 435px;
+  max-height: clamp(475px, 50vw, 670px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(160deg, var(--bg-elevated) 0%, var(--bg-deep) 55%, rgba(61, 139, 139, 0.12) 100%);
+}
+
+.image-stack--hero .image-stack__main .anim-img__frame img {
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Local hero artwork — fill width without harsh crop */
+.image-stack--hero .image-stack__main .anim-img__frame img[src*='hero'] {
+  object-fit: contain;
+  object-position: center;
+  padding: 0.75rem;
+}
+
+.image-stack--hero .image-stack__accent {
+  width: min(40%, 190px);
+  left: 0;
+  bottom: 8%;
+}
+
+.image-stack--hero .image-stack__accent .anim-img__frame {
+  aspect-ratio: 1;
+}
+
+.image-stack--hero .image-stack__accent .anim-img__frame img {
+  object-fit: cover;
+}
+
+.image-stack--hero .image-stack__badge {
+  top: 6%;
+  left: 4%;
+}
+
+@media (max-width: 899px) {
+  .image-stack--hero {
+    min-height: 0;
+    padding-bottom: 0.5rem;
+  }
+
+  .image-stack--hero .image-stack__accent {
+    display: none;
+  }
+
+  .image-stack--hero .image-stack__main .anim-img__frame {
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 1;
+    height: auto;
+  }
+
+  .image-stack--hero .image-stack__main .anim-img__frame img[src*='hero'] {
+    padding: 0.5rem;
+  }
+
+  .image-stack--hero .image-stack__badge {
+    top: 4%;
+    left: 3%;
+    font-size: 0.625rem;
+    padding: 0.35rem 0.65rem;
+  }
+
+  .image-stack--hero .anim-img--float .anim-img__frame {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-stack--hero .image-stack__main .anim-img__frame {
+    aspect-ratio: 4 / 3;
+  }
+}

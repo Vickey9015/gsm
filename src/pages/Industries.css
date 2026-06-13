@@ -1,0 +1,257 @@
+/* ─── Proven categories timeline ─── */
+.industries-demand {
+  background: var(--bg-deep);
+}
+
+.industries-demand__head {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .industries-demand__head {
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    gap: 2rem;
+  }
+}
+
+.industries-demand__note {
+  margin: 0;
+  font-size: 1.0625rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+.industries-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.industries-timeline__item {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: 1.25rem;
+  padding: 1.75rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.25s;
+}
+
+.industries-timeline__item:first-child {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.industries-timeline__item:hover {
+  background: rgba(201, 169, 98, 0.04);
+  margin-inline: -1rem;
+  padding-inline: 1rem;
+  border-radius: var(--radius);
+}
+
+.industries-timeline__step {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--accent);
+  line-height: 1;
+  padding-top: 0.15rem;
+}
+
+.industries-timeline__body h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.industries-timeline__body ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.industries-timeline__body li {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  padding: 0.35rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+}
+
+/* ─── Sector cards bento ─── */
+.industries-sectors {
+  background: var(--bg-card);
+  border-block: 1px solid var(--border-subtle);
+}
+
+.industries-sectors__head {
+  max-width: 40rem;
+  margin-bottom: 2.5rem;
+}
+
+.industries-sectors__head .section-lead {
+  margin-top: 0.75rem;
+}
+
+.industries-sectors__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .industries-sectors__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.sector-card {
+  position: relative;
+  padding: 1.35rem 1.15rem;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  overflow: hidden;
+}
+
+.sector-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle at 100% 0%, rgba(61, 139, 139, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.sector-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.sector-card--featured {
+  background: linear-gradient(145deg, rgba(201, 169, 98, 0.08) 0%, var(--bg-deep) 100%);
+}
+
+@media (min-width: 640px) {
+  .sector-card--featured:nth-child(1) {
+    grid-column: span 2;
+    grid-row: span 2;
+    min-height: 200px;
+  }
+
+  .sector-card--featured:nth-child(1) h3 {
+    font-size: 1.35rem;
+  }
+}
+
+.sector-card__icon {
+  position: absolute;
+  top: 0.85rem;
+  left: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.sector-card h3 {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  margin: 0;
+  position: relative;
+}
+
+.sector-card__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal);
+}
+
+/* ─── Why + CTA card ─── */
+.industries-why {
+  padding-bottom: 5rem;
+}
+
+.industries-why__layout {
+  display: grid;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .industries-why__layout {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 3rem;
+  }
+}
+
+.industries-why__copy p {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  line-height: 1.7;
+}
+
+.industries-why__copy p:last-of-type {
+  margin-bottom: 0;
+}
+
+.industries-why__card {
+  padding: 2rem;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.industries-why__card-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.industries-why__card h3 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.industries-why__card > p:not(.industries-why__card-label) {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  margin: 0 0 0.5rem;
+}
+
+.industries-why__actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.industries-why__actions .btn--outline {
+  margin-top: 0.25rem;
+}
