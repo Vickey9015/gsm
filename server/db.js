@@ -18,14 +18,17 @@ function requiredEnv(name, fallback) {
 }
 
 export function getDbConfig() {
+  // Hostinger Node must use 127.0.0.1 — "localhost" resolves to ::1 and is denied.
+  const host = requiredEnv('DB_HOST', '127.0.0.1')
   return {
-    host: requiredEnv('DB_HOST', '127.0.0.1'),
+    host: host === 'localhost' ? '127.0.0.1' : host,
     port: Number(requiredEnv('DB_PORT', '3306')),
     user: requiredEnv('DB_USER', 'gsm'),
     password: requiredEnv('DB_PASSWORD', 'gsm'),
     database: requiredEnv('DB_NAME', 'gsm'),
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 3,
+    connectTimeout: 10000,
     namedPlaceholders: true,
     timezone: 'Z',
   }
