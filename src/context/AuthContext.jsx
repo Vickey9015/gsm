@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 
 const STORAGE_KEY = 'gsm_admin_session'
+const DEFAULT_EMAIL = 'admin@consultgsm.com'
 const DEFAULT_PASSWORD = 'gsmadmin2026'
 
 const AuthContext = createContext(null)
@@ -21,16 +22,28 @@ function readSession() {
   }
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => readSession())
 
-  const login = useCallback((password) => {
-    const expected = import.meta.env.VITE_ADMIN_PASSWORD || DEFAULT_PASSWORD
-    if (password !== expected) {
-      throw new Error('Incorrect password')
+  const login = useCallback((email, password) => {
+    const expectedEmail = normalizeEmail(import.meta.env.VITE_ADMIN_EMAIL || DEFAULT_EMAIL)
+    const expectedPassword = import.meta.env.VITE_ADMIN_PASSWORD || DEFAULT_PASSWORD
+    const incomingEmail = normalizeEmail(email)
+
+    if (!incomingEmail || !password) {
+      throw new Error('Email and password are required')
     }
+    if (incomingEmail !== expectedEmail || password !== expectedPassword) {
+      throw new Error('Incorrect email or password')
+    }
+
     const next = {
       token: crypto.randomUUID(),
+      email: incomingEmail,
       expiresAt: Date.now() + 1000 * 60 * 60 * 12,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
@@ -46,6 +59,7 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       isAuthenticated: Boolean(session),
+      email: session?.email || '',
       login,
       logout,
     }),

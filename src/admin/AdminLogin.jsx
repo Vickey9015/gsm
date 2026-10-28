@@ -6,6 +6,7 @@ import './admin.css'
 export default function AdminLogin() {
   const { isAuthenticated, login } = useAuth()
   const navigate = useNavigate()
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -19,7 +20,7 @@ export default function AdminLogin() {
     setError('')
     setSubmitting(true)
     try {
-      login(password)
+      login(email, password)
       navigate('/admin', { replace: true })
     } catch (err) {
       setError(err.message || 'Login failed')
@@ -34,6 +35,18 @@ export default function AdminLogin() {
         <h1>GSM Admin</h1>
         <p>Sign in to manage the dashboard and blog content.</p>
         <form className="admin-form" onSubmit={handleSubmit}>
+          <div className="admin-field">
+            <label htmlFor="admin-email">Email</label>
+            <input
+              id="admin-email"
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@consultgsm.com"
+              required
+            />
+          </div>
           <div className="admin-field">
             <label htmlFor="admin-password">Password</label>
             <input
