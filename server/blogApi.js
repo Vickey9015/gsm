@@ -1,3 +1,4 @@
+import multer from 'multer'
 import {
   listBlogs,
   getBlog,
@@ -6,6 +7,19 @@ import {
   deleteBlog,
 } from './blogStore.js'
 import { initDb, pingDb } from './db.js'
+import { getMedia, saveMedia } from './mediaStore.js'
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (!file.mimetype?.startsWith('image/')) {
+      cb(new Error('Only image uploads are allowed'))
+      return
+    }
+    cb(null, true)
+  },
+})
 
 function sendJson(res, status, data) {
   res.statusCode = status
@@ -22,6 +36,15 @@ async function readBody(req) {
   } catch {
     return null
   }
+}
+
+function runUpload(req, res) {
+  return new Promise((resolve, reject) => {
+    upload.single('file')(req, res, (err) => {
+      if (err) reject(err)
+      else resolve(req.file || null)
+    })
+  })
 }
 
 export function createBlogApiHandler() {
@@ -55,6 +78,36 @@ export function createBlogApiHandler() {
       if (url.pathname === '/api/health') {
         const ok = await pingDb()
         sendJson(res, 200, { ok, database: ok ? 'connected' : 'error' })
+        return true
+      }
+
+      if (url.pathname === '/api/upload' && req.method === 'POST') {
+        const file = await runUpload(req, res)
+        if (!file) {
+          sendJson(res, 400, { error: 'No image file provided' })
+          return true
+        }
+        const media = await saveMedia({
+          filename: file.originalname,
+          mime: file.mimetype,
+          buffer: file.buffer,
+        })
+        sendJson(res, 201, { media })
+        return true
+      }
+
+      if (url.pathname.startsWith('/api/media/') && req.method === 'GET') {
+        const id = decodeURIComponent(url.pathname.replace('/api/media/', '').split('/')[0])
+        const media = await getMedia(id)
+        if (!media) {
+          sendJson(res, 404, { error: 'Media not found' })
+          return true
+        }
+        res.statusCode = 200
+        res.setHeader('Content-Type', media.mime)
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+        res.setHeader('Content-Length', String(media.data.length))
+        res.end(media.data)
         return true
       }
 

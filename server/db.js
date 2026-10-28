@@ -64,6 +64,18 @@ async function createSchema(connection) {
       KEY idx_blogs_status_updated (status, updated_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
+
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS media (
+      id CHAR(36) NOT NULL PRIMARY KEY,
+      filename VARCHAR(255) NOT NULL,
+      mime VARCHAR(120) NOT NULL,
+      size INT NOT NULL DEFAULT 0,
+      data LONGBLOB NOT NULL,
+      created_at DATETIME(3) NOT NULL,
+      KEY idx_media_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `)
 }
 
 async function seedIfEmpty(connection) {

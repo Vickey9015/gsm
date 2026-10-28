@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useBlogs } from '../context/BlogContext'
 import { slugify } from '../lib/slugify'
+import ImageUploadField from './ImageUploadField'
 
 const emptyForm = {
   title: '',
@@ -178,15 +179,13 @@ export default function AdminBlogEditor() {
               />
             </div>
 
-            <div className="admin-field">
-              <label htmlFor="coverImage">Cover image URL</label>
-              <input
-                id="coverImage"
-                value={form.coverImage}
-                onChange={(e) => updateField('coverImage', e.target.value)}
-                placeholder="https://…"
-              />
-            </div>
+            <ImageUploadField
+              id="coverImage"
+              label="Cover image"
+              value={form.coverImage}
+              onChange={(url) => updateField('coverImage', url)}
+              hint="Select an image from your device (max 5MB), or paste a URL."
+            />
           </div>
 
           <div className="admin-form">
@@ -250,15 +249,13 @@ export default function AdminBlogEditor() {
                   />
                 </div>
 
-                <div className="admin-field">
-                  <label htmlFor="ogImage">Open Graph image URL</label>
-                  <input
-                    id="ogImage"
-                    value={form.ogImage}
-                    onChange={(e) => updateField('ogImage', e.target.value)}
-                    placeholder="Defaults to cover image"
-                  />
-                </div>
+                <ImageUploadField
+                  id="ogImage"
+                  label="Open Graph image"
+                  value={form.ogImage}
+                  onChange={(url) => updateField('ogImage', url)}
+                  hint="Optional. Defaults to cover image if empty."
+                />
 
                 <div className="admin-field">
                   <label htmlFor="canonicalUrl">Canonical URL</label>
