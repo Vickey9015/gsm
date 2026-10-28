@@ -1,5 +1,5 @@
 /**
- * Hostinger Node entry file.
- * Set Application type to Express / Other and Entry file to: server.js
+ * Hostinger Express entry file.
+ * Application type: Express | Entry file: server.js
  */
 import './server/index.js'

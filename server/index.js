@@ -19,53 +19,69 @@ console.log('[boot] DB_NAME=', process.env.DB_NAME || '(missing)')
 
 app.use(express.json({ limit: '2mb' }))
 
+// Always-on ping (even if MySQL is down) to diagnose Hostinger 503s
+app.get('/api/ping', (_req, res) => {
+  res.json({ ok: true, time: new Date().toISOString() })
+})
+
 const blogApi = createBlogApiHandler()
 app.use(async (req, res, next) => {
-  const handled = await blogApi(req, res, next)
-  if (!handled) next()
+  try {
+    const handled = await blogApi(req, res, next)
+    if (!handled) next()
+  } catch (err) {
+    console.error('[api]', err)
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || 'Server error' })
+    }
+  }
 })
 
 if (fs.existsSync(dist)) {
   app.use(express.static(dist))
-  app.get('*', (req, res, next) => {
+  // Express 5-safe SPA fallback (no bare "*")
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
     if (req.path.startsWith('/api/')) return next()
-    res.sendFile(path.join(dist, 'index.html'))
+    res.sendFile(path.join(dist, 'index.html'), (err) => {
+      if (err) next(err)
+    })
   })
 } else {
   app.get('/', (_req, res) => {
-    res.status(503).send('Frontend build missing. Check postinstall / vite build logs.')
+    res
+      .status(200)
+      .send('API is up, but frontend build (dist) is missing. Check postinstall logs.')
   })
 }
 
-function startListening() {
-  return new Promise((resolve) => {
-    // Hostinger injects PORT — bind without forcing a host string.
-    const server = app.listen(port, () => {
-      console.log(`GSM server running on port ${port}`)
-      console.log('Admin panel: /admin')
-      console.log('Health: /api/health')
-      resolve(server)
-    })
-  })
-}
+app.use((err, _req, res, _next) => {
+  console.error('[express]', err)
+  if (!res.headersSent) {
+    res.status(500).json({ error: err.message || 'Server error' })
+  }
+})
 
 async function connectDbWithRetry() {
-  let attempt = 0
-  for (;;) {
-    attempt += 1
+  for (let attempt = 1; attempt <= 8; attempt += 1) {
     try {
       await initDb()
       return
     } catch (err) {
       console.error(`[db] connect failed (attempt ${attempt}):`, err.message)
-      if (attempt >= 5) {
-        console.error('[db] giving up for now; API will keep retrying on request')
-        return
-      }
-      await new Promise((r) => setTimeout(r, 2000 * attempt))
+      await new Promise((r) => setTimeout(r, 1500 * attempt))
     }
   }
+  console.error('[db] still unavailable; /api routes will retry on each request')
 }
 
-await startListening()
-connectDbWithRetry()
+const server = app.listen(port, () => {
+  console.log(`GSM server running on port ${port}`)
+  console.log('Health: /api/health')
+  connectDbWithRetry()
+})
+
+server.on('error', (err) => {
+  console.error('[listen] failed:', err.message)
+  process.exit(1)
+})
