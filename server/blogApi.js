@@ -4,8 +4,8 @@ import {
   createBlog,
   updateBlog,
   deleteBlog,
-  syncPublicCopy,
 } from './blogStore.js'
+import { initDb, pingDb } from './db.js'
 
 function sendJson(res, status, data) {
   res.statusCode = status
@@ -25,11 +25,16 @@ async function readBody(req) {
 }
 
 export function createBlogApiHandler() {
-  syncPublicCopy()
+  let ready = null
+
+  async function ensureReady() {
+    if (!ready) ready = initDb()
+    return ready
+  }
 
   return async function blogApiHandler(req, res, next) {
     const url = new URL(req.url || '/', 'http://localhost')
-    if (!url.pathname.startsWith('/api/blogs')) {
+    if (!url.pathname.startsWith('/api/')) {
       if (typeof next === 'function') return next()
       return false
     }
@@ -45,17 +50,29 @@ export function createBlogApiHandler() {
     }
 
     try {
+      await ensureReady()
+
+      if (url.pathname === '/api/health') {
+        const ok = await pingDb()
+        sendJson(res, 200, { ok, database: ok ? 'connected' : 'error' })
+        return true
+      }
+
+      if (!url.pathname.startsWith('/api/blogs')) {
+        sendJson(res, 404, { error: 'Not found' })
+        return true
+      }
+
       const parts = url.pathname.replace(/\/+$/, '').split('/').filter(Boolean)
-      // ["api","blogs"] or ["api","blogs",":id"]
       const id = parts.length >= 3 ? decodeURIComponent(parts[2]) : null
 
       if (req.method === 'GET' && !id) {
-        sendJson(res, 200, { posts: listBlogs() })
+        sendJson(res, 200, { posts: await listBlogs() })
         return true
       }
 
       if (req.method === 'GET' && id) {
-        const post = getBlog(id)
+        const post = await getBlog(id)
         if (!post) {
           sendJson(res, 404, { error: 'Post not found' })
           return true
@@ -70,7 +87,7 @@ export function createBlogApiHandler() {
           sendJson(res, 400, { error: 'Title is required' })
           return true
         }
-        const post = createBlog(body)
+        const post = await createBlog(body)
         sendJson(res, 201, { post })
         return true
       }
@@ -81,7 +98,7 @@ export function createBlogApiHandler() {
           sendJson(res, 400, { error: 'Invalid JSON body' })
           return true
         }
-        const post = updateBlog(id, body)
+        const post = await updateBlog(id, body)
         if (!post) {
           sendJson(res, 404, { error: 'Post not found' })
           return true
@@ -91,7 +108,7 @@ export function createBlogApiHandler() {
       }
 
       if (req.method === 'DELETE' && id) {
-        const ok = deleteBlog(id)
+        const ok = await deleteBlog(id)
         if (!ok) {
           sendJson(res, 404, { error: 'Post not found' })
           return true
@@ -103,7 +120,11 @@ export function createBlogApiHandler() {
       sendJson(res, 405, { error: 'Method not allowed' })
       return true
     } catch (err) {
-      sendJson(res, 500, { error: err.message || 'Server error' })
+      console.error('[blog-api]', err)
+      sendJson(res, 500, {
+        error: err.message || 'Server error',
+        hint: 'Check DB_* environment variables and that MySQL is running.',
+      })
       return true
     }
   }

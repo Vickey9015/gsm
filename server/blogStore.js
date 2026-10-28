@@ -1,40 +1,5 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DATA_PATH = path.resolve(__dirname, '../data/blogs.json')
-const PUBLIC_PATH = path.resolve(__dirname, '../public/data/blogs.json')
-
-function ensureDirs() {
-  for (const file of [DATA_PATH, PUBLIC_PATH]) {
-    const dir = path.dirname(file)
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  }
-}
-
-function readBlogs() {
-  ensureDirs()
-  if (!fs.existsSync(DATA_PATH)) {
-    fs.writeFileSync(DATA_PATH, '[]', 'utf8')
-  }
-  const raw = fs.readFileSync(DATA_PATH, 'utf8')
-  try {
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function writeBlogs(blogs) {
-  ensureDirs()
-  const json = `${JSON.stringify(blogs, null, 2)}\n`
-  fs.writeFileSync(DATA_PATH, json, 'utf8')
-  fs.writeFileSync(PUBLIC_PATH, json, 'utf8')
-  return blogs
-}
+import { getPool } from './db.js'
 
 export function slugify(text) {
   return String(text || '')
@@ -45,40 +10,83 @@ export function slugify(text) {
     .replace(/^-+|-+$/g, '')
 }
 
-function uniqueSlug(blogs, base, excludeId) {
+function toIso(value) {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toISOString()
+}
+
+function mapRow(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt || '',
+    content: row.content || '',
+    coverImage: row.cover_image || '',
+    status: row.status,
+    publishedAt: toIso(row.published_at),
+    updatedAt: toIso(row.updated_at),
+    author: row.author || 'GSM Team',
+    seoTitle: row.seo_title || '',
+    seoDescription: row.seo_description || '',
+    seoKeywords: row.seo_keywords || '',
+    ogImage: row.og_image || '',
+    canonicalUrl: row.canonical_url || '',
+    noIndex: Boolean(row.no_index),
+  }
+}
+
+async function uniqueSlug(base, excludeId = null) {
   let slug = base || 'post'
   let i = 2
-  while (blogs.some((b) => b.slug === slug && b.id !== excludeId)) {
+  for (;;) {
+    const [rows] = await getPool().query(
+      excludeId
+        ? 'SELECT id FROM blogs WHERE slug = :slug AND id <> :excludeId LIMIT 1'
+        : 'SELECT id FROM blogs WHERE slug = :slug LIMIT 1',
+      { slug, excludeId },
+    )
+    if (!rows.length) return slug
     slug = `${base}-${i}`
     i += 1
   }
-  return slug
 }
 
-export function listBlogs() {
-  return readBlogs().sort(
-    (a, b) => new Date(b.updatedAt || b.publishedAt || 0) - new Date(a.updatedAt || a.publishedAt || 0),
+export async function listBlogs() {
+  const [rows] = await getPool().query(
+    `SELECT * FROM blogs
+     ORDER BY COALESCE(updated_at, published_at) DESC`,
   )
+  return rows.map(mapRow)
 }
 
-export function getBlog(idOrSlug) {
-  return readBlogs().find((b) => b.id === idOrSlug || b.slug === idOrSlug) || null
+export async function getBlog(idOrSlug) {
+  const [rows] = await getPool().query(
+    `SELECT * FROM blogs
+     WHERE id = :idOrSlug OR slug = :idOrSlug
+     LIMIT 1`,
+    { idOrSlug },
+  )
+  return mapRow(rows[0])
 }
 
-export function createBlog(input) {
-  const blogs = readBlogs()
-  const now = new Date().toISOString()
+export async function createBlog(input) {
+  const now = new Date()
+  const status = input.status === 'published' ? 'published' : 'draft'
   const baseSlug = slugify(input.slug || input.title)
   const post = {
     id: randomUUID(),
     title: input.title?.trim() || 'Untitled',
-    slug: uniqueSlug(blogs, baseSlug, null),
+    slug: await uniqueSlug(baseSlug),
     excerpt: input.excerpt || '',
     content: input.content || '',
     coverImage: input.coverImage || '',
-    status: input.status === 'published' ? 'published' : 'draft',
-    publishedAt: input.status === 'published' ? input.publishedAt || now : input.publishedAt || null,
-    updatedAt: now,
+    status,
+    publishedAt: status === 'published' ? input.publishedAt || now.toISOString() : input.publishedAt || null,
+    updatedAt: now.toISOString(),
     author: input.author || 'GSM Team',
     seoTitle: input.seoTitle || '',
     seoDescription: input.seoDescription || '',
@@ -87,34 +95,62 @@ export function createBlog(input) {
     canonicalUrl: input.canonicalUrl || '',
     noIndex: Boolean(input.noIndex),
   }
-  blogs.unshift(post)
-  writeBlogs(blogs)
-  return post
+
+  await getPool().query(
+    `INSERT INTO blogs (
+      id, title, slug, excerpt, content, cover_image, status,
+      published_at, updated_at, author, seo_title, seo_description,
+      seo_keywords, og_image, canonical_url, no_index
+    ) VALUES (
+      :id, :title, :slug, :excerpt, :content, :coverImage, :status,
+      :publishedAt, :updatedAt, :author, :seoTitle, :seoDescription,
+      :seoKeywords, :ogImage, :canonicalUrl, :noIndex
+    )`,
+    {
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      content: post.content,
+      coverImage: post.coverImage,
+      status: post.status,
+      publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
+      updatedAt: new Date(post.updatedAt),
+      author: post.author,
+      seoTitle: post.seoTitle,
+      seoDescription: post.seoDescription,
+      seoKeywords: post.seoKeywords,
+      ogImage: post.ogImage,
+      canonicalUrl: post.canonicalUrl,
+      noIndex: post.noIndex ? 1 : 0,
+    },
+  )
+
+  return getBlog(post.id)
 }
 
-export function updateBlog(id, input) {
-  const blogs = readBlogs()
-  const index = blogs.findIndex((b) => b.id === id)
-  if (index === -1) return null
+export async function updateBlog(id, input) {
+  const existing = await getBlog(id)
+  if (!existing) return null
 
-  const existing = blogs[index]
-  const now = new Date().toISOString()
-  const nextStatus = input.status === 'published' ? 'published' : input.status === 'draft' ? 'draft' : existing.status
+  const now = new Date()
+  const nextStatus =
+    input.status === 'published' ? 'published' : input.status === 'draft' ? 'draft' : existing.status
   const baseSlug = slugify(input.slug || input.title || existing.slug)
 
   const updated = {
     ...existing,
     title: input.title !== undefined ? input.title.trim() || existing.title : existing.title,
-    slug: uniqueSlug(blogs, baseSlug, id),
+    slug: await uniqueSlug(baseSlug, id),
     excerpt: input.excerpt !== undefined ? input.excerpt : existing.excerpt,
     content: input.content !== undefined ? input.content : existing.content,
     coverImage: input.coverImage !== undefined ? input.coverImage : existing.coverImage,
     status: nextStatus,
     publishedAt:
       nextStatus === 'published'
-        ? existing.publishedAt || input.publishedAt || now
+        ? existing.publishedAt || input.publishedAt || now.toISOString()
         : existing.publishedAt,
-    updatedAt: now,
+    updatedAt: now.toISOString(),
     author: input.author !== undefined ? input.author : existing.author,
     seoTitle: input.seoTitle !== undefined ? input.seoTitle : existing.seoTitle,
     seoDescription: input.seoDescription !== undefined ? input.seoDescription : existing.seoDescription,
@@ -124,19 +160,48 @@ export function updateBlog(id, input) {
     noIndex: input.noIndex !== undefined ? Boolean(input.noIndex) : existing.noIndex,
   }
 
-  blogs[index] = updated
-  writeBlogs(blogs)
-  return updated
+  await getPool().query(
+    `UPDATE blogs SET
+      title = :title,
+      slug = :slug,
+      excerpt = :excerpt,
+      content = :content,
+      cover_image = :coverImage,
+      status = :status,
+      published_at = :publishedAt,
+      updated_at = :updatedAt,
+      author = :author,
+      seo_title = :seoTitle,
+      seo_description = :seoDescription,
+      seo_keywords = :seoKeywords,
+      og_image = :ogImage,
+      canonical_url = :canonicalUrl,
+      no_index = :noIndex
+     WHERE id = :id`,
+    {
+      id,
+      title: updated.title,
+      slug: updated.slug,
+      excerpt: updated.excerpt,
+      content: updated.content,
+      coverImage: updated.coverImage,
+      status: updated.status,
+      publishedAt: updated.publishedAt ? new Date(updated.publishedAt) : null,
+      updatedAt: new Date(updated.updatedAt),
+      author: updated.author,
+      seoTitle: updated.seoTitle,
+      seoDescription: updated.seoDescription,
+      seoKeywords: updated.seoKeywords,
+      ogImage: updated.ogImage,
+      canonicalUrl: updated.canonicalUrl,
+      noIndex: updated.noIndex ? 1 : 0,
+    },
+  )
+
+  return getBlog(id)
 }
 
-export function deleteBlog(id) {
-  const blogs = readBlogs()
-  const next = blogs.filter((b) => b.id !== id)
-  if (next.length === blogs.length) return false
-  writeBlogs(next)
-  return true
-}
-
-export function syncPublicCopy() {
-  writeBlogs(readBlogs())
+export async function deleteBlog(id) {
+  const [result] = await getPool().query('DELETE FROM blogs WHERE id = :id', { id })
+  return result.affectedRows > 0
 }

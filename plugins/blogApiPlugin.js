@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { createBlogApiHandler } from '../server/blogApi.js'
 
 export function blogApiPlugin() {
