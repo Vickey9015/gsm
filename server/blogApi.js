@@ -34,8 +34,8 @@ export function createBlogApiHandler() {
 
   return async function blogApiHandler(req, res, next) {
     const url = new URL(req.url || '/', 'http://localhost')
+    // Let Vite/Express continue for non-API routes (do not call next() here).
     if (!url.pathname.startsWith('/api/')) {
-      if (typeof next === 'function') return next()
       return false
     }
 
