@@ -17,7 +17,7 @@ console.log('[boot] dist=', dist, 'exists=', fs.existsSync(dist))
 console.log('[boot] DB_HOST=', process.env.DB_HOST || '(default 127.0.0.1)')
 console.log('[boot] DB_NAME=', process.env.DB_NAME || '(missing)')
 
-app.use(express.json({ limit: '2mb' }))
+app.use(express.json({ limit: '10mb' }))
 
 // Always-on ping (even if MySQL is down) to diagnose Hostinger 503s
 app.get('/api/ping', (_req, res) => {

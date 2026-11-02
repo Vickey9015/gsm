@@ -28,6 +28,10 @@ function sendJson(res, status, data) {
 }
 
 async function readBody(req) {
+  // In production Express, express.json() has already consumed the stream.
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return req.body
+  }
   const chunks = []
   for await (const chunk of req) chunks.push(chunk)
   if (!chunks.length) return {}
